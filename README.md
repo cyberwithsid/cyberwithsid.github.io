@@ -55,7 +55,7 @@ I’m a Security Operations Center (SOC) Analyst passionate about:
 ## 📫 Contact
 
 📧 Email: [sidfaza.io@gmail.com](mailto:sidfaza.io@gmail.com)
-🔗 LinkedIn: [linkedin.com/in/siddique](https://linkedin.com/in/siddique)
+🔗 LinkedIn: [linkedin.com/in/](https://linkedin.com/in/)
 
 ---
 
