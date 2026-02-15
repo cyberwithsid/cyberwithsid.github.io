@@ -1,0 +1,82 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Wazuh SOC SIEM – Full Deployment Guide & Architecture</title>
+<style>
+body { font-family: Arial, Helvetica, sans-serif; margin: 40px; line-height: 1.6; }
+h1, h2, h3 { color: #003366; }
+code, pre { background: #f4f4f4; padding: 10px; display: block; border-radius: 4px; overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; margin: 15px 0; }
+table, th, td { border: 1px solid #333; }
+th, td { padding: 8px; text-align: left; }
+th { background-color: #e6f0ff; }
+</style>
+</head>
+<body>
+
+<h1>Wazuh SOC SIEM – Full Deployment Step-by-Step Technical Guide & Architecture</h1>
+
+<h2>1. Project Overview</h2>
+<p>This document provides a complete production-grade deployment guide for building a Security Operations Center (SOC) using Wazuh SIEM & XDR.</p>
+
+<h2>2. High-Level SOC Architecture</h2>
+<pre>
+Endpoints → Wazuh Agents → Wazuh Manager → OpenSearch → Wazuh Dashboard → SOC Analysts
+</pre>
+
+<h2>3. Infrastructure Requirements</h2>
+<table>
+<tr><th>Component</th><th>vCPU</th><th>RAM</th><th>Disk</th></tr>
+<tr><td>Manager</td><td>8</td><td>16GB</td><td>200GB</td></tr>
+<tr><td>Indexer</td><td>16</td><td>32GB</td><td>1–2TB</td></tr>
+<tr><td>Dashboard</td><td>4</td><td>8GB</td><td>100GB</td></tr>
+</table>
+
+<h2>4. OS Hardening</h2>
+<pre>
+apt update && apt upgrade -y
+apt install -y fail2ban ufw auditd
+ufw allow 22,443,1514,1515,9200
+ufw enable
+</pre>
+
+<h2>5. All-in-One Installation</h2>
+<pre>
+curl -sO https://packages.wazuh.com/4.7/wazuh-install.sh
+bash wazuh-install.sh -a
+</pre>
+
+<h2>6. Agent Deployment</h2>
+<h3>Windows</h3>
+<pre>
+msiexec /i wazuh-agent.msi /qn WAZUH_MANAGER='10.0.0.10'
+</pre>
+
+<h3>Linux</h3>
+<pre>
+curl -so wazuh-agent.deb https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.x.deb
+dpkg -i wazuh-agent.deb
+systemctl enable wazuh-agent
+systemctl start wazuh-agent
+</pre>
+
+<h2>7. SOC Workflow</h2>
+<pre>
+Event → Alert → Triage → Investigation → Response → Recovery → Closure
+</pre>
+
+<h2>8. Compliance Mapping</h2>
+<table>
+<tr><th>Framework</th><th>Coverage</th></tr>
+<tr><td>ISO 27001</td><td>Logging, Monitoring, FIM</td></tr>
+<tr><td>SOC 2</td><td>Continuous Monitoring</td></tr>
+<tr><td>PCI DSS</td><td>Log Retention, IDS</td></tr>
+</table>
+
+<h2>9. Final Notes</h2>
+<p>This deployment provides a complete enterprise SOC using Wazuh SIEM with full detection, automation and compliance readiness.</p>
+
+</body>
+</html>
