@@ -30,7 +30,7 @@ I’m a Security Operations Center (SOC) Analyst passionate about:
 
 ## 📂 Featured Projects
 
-* 🔹 **[SOC SIEM Dashboard](#)** – Real-time Splunk-based monitoring with threat intelligence integration
+* 🔹 **[SOC SIEM Dashboard](Wazuh_SOC_SIEM_Full_Deployment_Guide.html)** – Real-time Splunk-based monitoring with threat intelligence integration
 * 🔹 **[Incident Response Playbook](#)** – Structured IR workflows for quick containment & recovery
 * 🔹 **[Virtual SOC Lab](#)** – Hands-on Blue Team practice using open-source tools
 
