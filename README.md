@@ -3,7 +3,7 @@
 *SOC Analyst | Cybersecurity Enthusiast | IT Infrastructure Specialist*
 
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-blue?logo=linkedin\&logoColor=white)](https://linkedin.com/in/siddique)
-[![Email](https://img.shields.io/badge/Email-grey?logo=gmail\&logoColor=white)](mailto:sidfaza.io@gmail.com)
+[![Email](https://img.shields.io/badge/Email-grey?logo=gmail\&logoColor=white)](mailto:siddfazy@gmail.com)
 
 ---
 
