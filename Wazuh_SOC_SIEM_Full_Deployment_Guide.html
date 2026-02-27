@@ -1,82 +1,1366 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Wazuh SOC SIEM – Full Deployment Guide & Architecture</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Wazuh SOC SIEM – Full Deployment Guide | Sid Faza</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@300;400;600;700&display=swap" rel="stylesheet">
 <style>
-body { font-family: Arial, Helvetica, sans-serif; margin: 40px; line-height: 1.6; }
-h1, h2, h3 { color: #003366; }
-code, pre { background: #f4f4f4; padding: 10px; display: block; border-radius: 4px; overflow-x: auto; }
-table { border-collapse: collapse; width: 100%; margin: 15px 0; }
-table, th, td { border: 1px solid #333; }
-th, td { padding: 8px; text-align: left; }
-th { background-color: #e6f0ff; }
+  :root {
+    --bg-primary: #030712;
+    --bg-secondary: #070d1a;
+    --bg-card: #0a1628;
+    --bg-code: #060e1e;
+    --cyan: #00f5ff;
+    --magenta: #ff006e;
+    --green: #39ff14;
+    --yellow: #ffd700;
+    --orange: #ff6b00;
+    --purple: #bd00ff;
+    --text-primary: #e0f0ff;
+    --text-secondary: #7899bb;
+    --border: rgba(0, 245, 255, 0.15);
+    --glow-cyan: 0 0 20px rgba(0, 245, 255, 0.5);
+    --glow-magenta: 0 0 20px rgba(255, 0, 110, 0.5);
+    --glow-green: 0 0 20px rgba(57, 255, 20, 0.4);
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Rajdhani', sans-serif;
+    font-size: 16px;
+    line-height: 1.7;
+    overflow-x: hidden;
+  }
+
+  /* GRID BG */
+  body::after {
+    content: '';
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-image:
+      linear-gradient(rgba(0,245,255,0.025) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,245,255,0.025) 1px, transparent 1px);
+    background-size: 50px 50px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* SCANLINES */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px
+    );
+    pointer-events: none;
+    z-index: 9990;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed;
+    top: 0; width: 100%;
+    background: rgba(3,7,18,0.92);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border);
+    z-index: 1000;
+    padding: 0 5%;
+  }
+  .nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 60px;
+  }
+  .nav-logo {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 1rem;
+    color: var(--cyan);
+    text-decoration: none;
+    letter-spacing: 3px;
+    text-shadow: var(--glow-cyan);
+  }
+  .nav-logo span { color: var(--magenta); }
+  .nav-back {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: color 0.3s;
+  }
+  .nav-back:hover { color: var(--cyan); }
+  .nav-back::before { content: '←'; }
+
+  /* HERO BANNER */
+  .hero {
+    position: relative;
+    padding: 120px 6% 70px;
+    z-index: 1;
+    border-bottom: 1px solid var(--border);
+    background: linear-gradient(135deg, rgba(0,245,255,0.03) 0%, transparent 50%);
+    overflow: hidden;
+  }
+  .hero-bg-hex {
+    position: absolute;
+    right: -80px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 22rem;
+    color: var(--cyan);
+    opacity: 0.02;
+    line-height: 1;
+    pointer-events: none;
+    animation: spin-slow 40s linear infinite;
+  }
+  @keyframes spin-slow { from { transform: translateY(-50%) rotate(0deg); } to { transform: translateY(-50%) rotate(360deg); } }
+
+  .hero-breadcrumb {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 2px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .hero-breadcrumb a { color: var(--cyan); text-decoration: none; }
+  .hero-breadcrumb span { color: var(--text-secondary); }
+
+  .hero-tags { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1.5rem; }
+  .hero-tag {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border: 1px solid rgba(0,245,255,0.3);
+    color: var(--cyan);
+    background: rgba(0,245,255,0.06);
+  }
+  .hero-tag.magenta { border-color: rgba(255,0,110,0.3); color: var(--magenta); background: rgba(255,0,110,0.06); }
+  .hero-tag.green { border-color: rgba(57,255,20,0.3); color: var(--green); background: rgba(57,255,20,0.06); }
+
+  .hero-title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    line-height: 1.1;
+    color: #fff;
+    margin-bottom: 0.75rem;
+  }
+  .hero-title span { color: var(--cyan); text-shadow: var(--glow-cyan); }
+
+  .hero-subtitle {
+    font-size: 1.1rem;
+    color: var(--text-secondary);
+    max-width: 680px;
+    margin-bottom: 2rem;
+    line-height: 1.8;
+  }
+
+  .hero-meta {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+  }
+  .hero-meta-item { display: flex; align-items: center; gap: 0.5rem; }
+  .hero-meta-item .dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--green);
+    box-shadow: 0 0 8px var(--green);
+    animation: blink 2s infinite;
+  }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:0.2} }
+
+  /* LAYOUT */
+  .page-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 0;
+    position: relative;
+    z-index: 1;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* SIDEBAR */
+  .sidebar {
+    position: sticky;
+    top: 60px;
+    height: calc(100vh - 60px);
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+    padding: 2.5rem 1.5rem;
+    background: rgba(7,13,26,0.6);
+    scrollbar-width: thin;
+    scrollbar-color: var(--cyan) transparent;
+  }
+  .sidebar::-webkit-scrollbar { width: 3px; }
+  .sidebar::-webkit-scrollbar-thumb { background: var(--cyan); }
+
+  .sidebar-title {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .toc-list { list-style: none; display: flex; flex-direction: column; gap: 0.25rem; }
+  .toc-list a {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    text-decoration: none;
+    padding: 6px 10px;
+    border-left: 2px solid transparent;
+    transition: all 0.3s;
+    line-height: 1.4;
+  }
+  .toc-list a:hover, .toc-list a.active {
+    color: var(--cyan);
+    border-left-color: var(--cyan);
+    background: rgba(0,245,255,0.05);
+  }
+  .toc-num {
+    font-size: 0.58rem;
+    color: var(--cyan);
+    opacity: 0.6;
+    min-width: 20px;
+  }
+
+  .sidebar-progress {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--border);
+  }
+  .progress-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 3px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    display: flex;
+    justify-content: space-between;
+  }
+  .progress-label span { color: var(--cyan); }
+  .progress-bar-bg {
+    height: 3px;
+    background: rgba(255,255,255,0.06);
+    border-radius: 2px;
+  }
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--cyan), var(--magenta));
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.3s;
+    box-shadow: 0 0 8px var(--cyan);
+  }
+
+  /* MAIN CONTENT */
+  .main-content {
+    padding: 3rem 4rem;
+    max-width: 960px;
+  }
+
+  /* SECTIONS */
+  .doc-section {
+    margin-bottom: 4.5rem;
+    padding-bottom: 4.5rem;
+    border-bottom: 1px solid rgba(0,245,255,0.06);
+  }
+  .doc-section:last-child { border-bottom: none; }
+
+  .section-num {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 4px;
+    color: var(--cyan);
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+  }
+  .section-title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 800;
+    font-size: clamp(1.2rem, 2.5vw, 1.7rem);
+    color: #fff;
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    line-height: 1.2;
+  }
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(0,245,255,0.3), transparent);
+  }
+
+  p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+    line-height: 1.85;
+    margin-bottom: 1.25rem;
+  }
+  p strong { color: var(--cyan); font-weight: 600; }
+  p em { color: var(--yellow); font-style: normal; }
+
+  /* ARCHITECTURE DIAGRAM */
+  .arch-diagram {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--cyan);
+    padding: 2rem;
+    margin: 1.5rem 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .arch-diagram::before {
+    content: 'ARCHITECTURE';
+    position: absolute;
+    top: 10px; right: 16px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.58rem;
+    letter-spacing: 3px;
+    color: var(--cyan);
+    opacity: 0.4;
+  }
+  .arch-flow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+    letter-spacing: 1px;
+  }
+  .arch-node {
+    background: rgba(0,245,255,0.08);
+    border: 1px solid rgba(0,245,255,0.25);
+    color: var(--cyan);
+    padding: 10px 18px;
+    white-space: nowrap;
+    clip-path: polygon(6px 0, 100% 0, calc(100% - 6px) 100%, 0 100%);
+    text-align: center;
+    line-height: 1.3;
+  }
+  .arch-node small {
+    display: block;
+    font-size: 0.58rem;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+  .arch-arrow {
+    color: var(--cyan);
+    font-size: 1.2rem;
+    opacity: 0.6;
+    padding: 0 6px;
+    flex-shrink: 0;
+  }
+  .arch-node.green { background: rgba(57,255,20,0.06); border-color: rgba(57,255,20,0.25); color: var(--green); }
+  .arch-node.magenta { background: rgba(255,0,110,0.06); border-color: rgba(255,0,110,0.25); color: var(--magenta); }
+  .arch-node.yellow { background: rgba(255,215,0,0.06); border-color: rgba(255,215,0,0.25); color: var(--yellow); }
+  .arch-node.orange { background: rgba(255,107,0,0.06); border-color: rgba(255,107,0,0.25); color: var(--orange); }
+  .arch-node.purple { background: rgba(189,0,255,0.06); border-color: rgba(189,0,255,0.25); color: var(--purple); }
+
+  /* INFO CARDS */
+  .info-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+  .info-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 1.25rem;
+    position: relative;
+    clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 12px 100%, 0 calc(100% - 12px));
+  }
+  .info-card-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 0.5rem;
+  }
+  .info-card-value {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 1.4rem;
+    color: #fff;
+    margin-bottom: 0.2rem;
+  }
+  .info-card-sub {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    letter-spacing: 1px;
+  }
+
+  /* TABLE */
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 1.5rem 0;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+  }
+  .data-table thead tr {
+    background: rgba(0,245,255,0.08);
+    border-bottom: 1px solid rgba(0,245,255,0.3);
+  }
+  .data-table th {
+    padding: 12px 16px;
+    text-align: left;
+    font-size: 0.65rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--cyan);
+    font-weight: 400;
+  }
+  .data-table td {
+    padding: 10px 16px;
+    color: var(--text-secondary);
+    border-bottom: 1px solid rgba(0,245,255,0.05);
+    vertical-align: middle;
+  }
+  .data-table tr:hover td { background: rgba(0,245,255,0.03); color: var(--text-primary); }
+  .data-table td:first-child { color: var(--text-primary); font-weight: 600; }
+  .data-table .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    font-size: 0.62rem;
+    border: 1px solid rgba(57,255,20,0.3);
+    color: var(--green);
+    background: rgba(57,255,20,0.06);
+  }
+  .data-table .badge.yellow { border-color: rgba(255,215,0,0.3); color: var(--yellow); background: rgba(255,215,0,0.06); }
+
+  /* CODE BLOCKS */
+  .code-block {
+    background: var(--bg-code);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--green);
+    margin: 1.5rem 0;
+    position: relative;
+    overflow: hidden;
+  }
+  .code-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px;
+    background: rgba(0,0,0,0.3);
+    border-bottom: 1px solid var(--border);
+  }
+  .code-lang {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--green);
+  }
+  .code-dots { display: flex; gap: 5px; }
+  .code-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+  }
+  .code-dot:nth-child(1) { background: var(--magenta); }
+  .code-dot:nth-child(2) { background: var(--yellow); }
+  .code-dot:nth-child(3) { background: var(--green); }
+  .code-copy {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.6rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.3s;
+  }
+  .code-copy:hover { color: var(--cyan); }
+  pre {
+    padding: 1.5rem;
+    overflow-x: auto;
+    margin: 0;
+  }
+  code {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.82rem;
+    color: var(--green);
+    line-height: 1.7;
+  }
+  .code-comment { color: rgba(120,153,187,0.6); }
+  .code-cmd { color: var(--cyan); }
+  .code-flag { color: var(--yellow); }
+  .code-val { color: var(--magenta); }
+  .code-path { color: var(--orange); }
+
+  /* SUB SECTION */
+  .sub-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid rgba(0,245,255,0.06);
+  }
+  .sub-title {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #e0e0ff;
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .sub-title::before {
+    content: '//';
+    color: var(--cyan);
+    font-size: 0.85rem;
+    opacity: 0.7;
+  }
+
+  /* WORKFLOW */
+  .workflow {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    margin: 1.5rem 0;
+    flex-wrap: wrap;
+  }
+  .workflow-step {
+    flex: 1;
+    min-width: 100px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-right: none;
+    padding: 1rem 0.75rem;
+    text-align: center;
+    position: relative;
+    transition: all 0.3s;
+  }
+  .workflow-step:last-child { border-right: 1px solid var(--border); }
+  .workflow-step::after {
+    content: '›';
+    position: absolute;
+    right: -12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--cyan);
+    font-size: 1.4rem;
+    z-index: 2;
+    background: var(--bg-code);
+  }
+  .workflow-step:last-child::after { display: none; }
+  .workflow-step:hover { background: rgba(0,245,255,0.06); border-color: rgba(0,245,255,0.3); }
+  .step-num {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 700;
+    color: var(--cyan);
+    opacity: 0.6;
+    margin-bottom: 0.25rem;
+  }
+  .step-label {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--text-primary);
+    line-height: 1.4;
+  }
+
+  /* COMPLIANCE */
+  .compliance-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin: 1.5rem 0;
+  }
+  .compliance-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    padding: 1.25rem;
+    transition: all 0.3s;
+  }
+  .compliance-card:hover {
+    border-color: rgba(0,245,255,0.3);
+    transform: translateY(-2px);
+  }
+  .compliance-logo {
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 900;
+    font-size: 1.1rem;
+    color: var(--cyan);
+    margin-bottom: 0.5rem;
+  }
+  .compliance-name {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .compliance-items { list-style: none; display: flex; flex-direction: column; gap: 0.3rem; }
+  .compliance-items li {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 1px;
+    color: var(--text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .compliance-items li::before { content: '✓'; color: var(--green); font-size: 0.7rem; }
+
+  /* ALERT BOXES */
+  .alert-box {
+    padding: 1rem 1.25rem;
+    margin: 1.5rem 0;
+    border-left: 3px solid;
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  .alert-box.info { border-color: var(--cyan); background: rgba(0,245,255,0.05); }
+  .alert-box.warning { border-color: var(--yellow); background: rgba(255,215,0,0.05); }
+  .alert-box.success { border-color: var(--green); background: rgba(57,255,20,0.05); }
+  .alert-icon {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  .alert-box.info .alert-icon { color: var(--cyan); border: 1px solid rgba(0,245,255,0.3); }
+  .alert-box.warning .alert-icon { color: var(--yellow); border: 1px solid rgba(255,215,0,0.3); }
+  .alert-box.success .alert-icon { color: var(--green); border: 1px solid rgba(57,255,20,0.3); }
+  .alert-box p { margin: 0; font-size: 0.9rem; }
+  .alert-box.info p { color: rgba(0,245,255,0.8); }
+  .alert-box.warning p { color: rgba(255,215,0,0.8); }
+  .alert-box.success p { color: rgba(57,255,20,0.8); }
+
+  /* PORT TABLE */
+  .port-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.6rem 1rem;
+    border-bottom: 1px solid rgba(0,245,255,0.05);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.78rem;
+  }
+  .port-item:hover { background: rgba(0,245,255,0.03); }
+  .port-num {
+    min-width: 60px;
+    color: var(--cyan);
+    font-weight: 600;
+  }
+  .port-proto {
+    min-width: 50px;
+    color: var(--yellow);
+    font-size: 0.65rem;
+  }
+  .port-desc { color: var(--text-secondary); flex: 1; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 4px; height: 4px; }
+  ::-webkit-scrollbar-track { background: var(--bg-primary); }
+  ::-webkit-scrollbar-thumb { background: var(--cyan); border-radius: 2px; }
+
+  /* REVEAL */
+  .reveal { opacity: 0; transform: translateY(20px); transition: opacity 0.5s ease, transform 0.5s ease; }
+  .reveal.visible { opacity: 1; transform: translateY(0); }
+
+  /* FOOTER */
+  .doc-footer {
+    position: relative;
+    z-index: 1;
+    background: var(--bg-secondary);
+    border-top: 1px solid var(--border);
+    padding: 2rem 6%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+    letter-spacing: 2px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+  }
+  .doc-footer span { color: var(--cyan); }
+  .footer-back {
+    color: var(--cyan);
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: gap 0.3s;
+  }
+  .footer-back:hover { gap: 0.9rem; }
+
+  @media (max-width: 900px) {
+    .page-layout { grid-template-columns: 1fr; }
+    .sidebar { display: none; }
+    .main-content { padding: 2rem 5%; }
+    .arch-flow { flex-direction: column; align-items: flex-start; }
+    .arch-arrow { transform: rotate(90deg); }
+    .workflow { flex-direction: column; }
+    .workflow-step { border-right: 1px solid var(--border); border-bottom: none; }
+    .workflow-step::after { right: auto; bottom: -12px; top: auto; transform: rotate(90deg); left: 50%; }
+  }
 </style>
 </head>
 <body>
 
-<h1>Wazuh SOC SIEM – Full Deployment Step-by-Step Technical Guide & Architecture</h1>
+<!-- NAV -->
+<nav>
+  <div class="nav-inner">
+    <a href="index.html" class="nav-logo">SID<span>_</span>FAZA</a>
+    <a href="index.html#projects" class="nav-back">Back to Projects</a>
+  </div>
+</nav>
 
-<h2>1. Project Overview</h2>
-<p>This document provides a complete production-grade deployment guide for building a Security Operations Center (SOC) using Wazuh SIEM & XDR.</p>
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-bg-hex">⬡</div>
+  <div class="hero-breadcrumb">
+    <a href="index.html">Portfolio</a>
+    <span>›</span>
+    <span>SOC Projects</span>
+    <span>›</span>
+    <span>Wazuh SIEM Deployment</span>
+  </div>
+  <div class="hero-tags">
+    <span class="hero-tag">SOC</span>
+    <span class="hero-tag magenta">SIEM / XDR</span>
+    <span class="hero-tag green">Production Grade</span>
+    <span class="hero-tag">Wazuh 4.7</span>
+  </div>
+  <h1 class="hero-title">Wazuh SOC SIEM<br><span>Full Deployment Guide</span></h1>
+  <p class="hero-subtitle">A complete production-grade step-by-step technical guide for building an enterprise Security Operations Center using Wazuh SIEM & XDR with OpenSearch, agent deployment, detection rules, and compliance mapping.</p>
+  <div class="hero-meta">
+    <div class="hero-meta-item"><div class="dot"></div><span>Status: Production Ready</span></div>
+    <div class="hero-meta-item"><span>Version: Wazuh 4.7</span></div>
+    <div class="hero-meta-item"><span>Difficulty: Advanced</span></div>
+    <div class="hero-meta-item"><span>Author: Sid Faza</span></div>
+  </div>
+</div>
 
-<h2>2. High-Level SOC Architecture</h2>
-<pre>
-Endpoints → Wazuh Agents → Wazuh Manager → OpenSearch → Wazuh Dashboard → SOC Analysts
-</pre>
+<!-- BODY -->
+<div class="page-layout">
 
-<h2>3. Infrastructure Requirements</h2>
-<table>
-<tr><th>Component</th><th>vCPU</th><th>RAM</th><th>Disk</th></tr>
-<tr><td>Manager</td><td>8</td><td>16GB</td><td>200GB</td></tr>
-<tr><td>Indexer</td><td>16</td><td>32GB</td><td>1–2TB</td></tr>
-<tr><td>Dashboard</td><td>4</td><td>8GB</td><td>100GB</td></tr>
-</table>
+  <!-- SIDEBAR TOC -->
+  <aside class="sidebar">
+    <div class="sidebar-title">// Table of Contents</div>
+    <ul class="toc-list">
+      <li><a href="#overview" class="toc-link"><span class="toc-num">01</span>Project Overview</a></li>
+      <li><a href="#architecture" class="toc-link"><span class="toc-num">02</span>SOC Architecture</a></li>
+      <li><a href="#requirements" class="toc-link"><span class="toc-num">03</span>Infrastructure Requirements</a></li>
+      <li><a href="#hardening" class="toc-link"><span class="toc-num">04</span>OS Hardening</a></li>
+      <li><a href="#installation" class="toc-link"><span class="toc-num">05</span>All-in-One Installation</a></li>
+      <li><a href="#agents" class="toc-link"><span class="toc-num">06</span>Agent Deployment</a></li>
+      <li><a href="#workflow" class="toc-link"><span class="toc-num">07</span>SOC Workflow</a></li>
+      <li><a href="#compliance" class="toc-link"><span class="toc-num">08</span>Compliance Mapping</a></li>
+      <li><a href="#conclusion" class="toc-link"><span class="toc-num">09</span>Final Notes</a></li>
+    </ul>
+    <div class="sidebar-progress">
+      <div class="progress-label">Reading Progress <span id="progressPct">0%</span></div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progressBar"></div>
+      </div>
+    </div>
+  </aside>
 
-<h2>4. OS Hardening</h2>
-<pre>
-apt update && apt upgrade -y
-apt install -y fail2ban ufw auditd
-ufw allow 22,443,1514,1515,9200
-ufw enable
-</pre>
+  <!-- MAIN -->
+  <main class="main-content">
 
-<h2>5. All-in-One Installation</h2>
-<pre>
-curl -sO https://packages.wazuh.com/4.7/wazuh-install.sh
-bash wazuh-install.sh -a
-</pre>
+    <!-- 01 OVERVIEW -->
+    <div class="doc-section reveal" id="overview">
+      <div class="section-num">// 01</div>
+      <h2 class="section-title">Project Overview</h2>
+      <p>This document provides a complete <strong>production-grade deployment guide</strong> for building a Security Operations Center (SOC) using <strong>Wazuh SIEM &amp; XDR</strong>. It covers everything from infrastructure sizing and OS hardening to agent rollout, detection rule tuning, and compliance framework mapping.</p>
+      <p>Wazuh is an open-source security platform delivering <em>unified SIEM</em>, XDR, and compliance capabilities. It integrates with <strong>OpenSearch</strong> for log indexing and provides a powerful dashboard for SOC analysts to monitor, investigate, and respond to threats in real time.</p>
 
-<h2>6. Agent Deployment</h2>
-<h3>Windows</h3>
-<pre>
-msiexec /i wazuh-agent.msi /qn WAZUH_MANAGER='10.0.0.10'
-</pre>
+      <div class="info-cards">
+        <div class="info-card">
+          <div class="info-card-label">Platform</div>
+          <div class="info-card-value">Wazuh</div>
+          <div class="info-card-sub">v4.7 — SIEM / XDR</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">Indexer</div>
+          <div class="info-card-value">OpenSearch</div>
+          <div class="info-card-sub">Log storage & search</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">Agents</div>
+          <div class="info-card-value">Multi-OS</div>
+          <div class="info-card-sub">Windows · Linux · macOS</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">Frameworks</div>
+          <div class="info-card-value">3+</div>
+          <div class="info-card-sub">ISO 27001 · SOC2 · PCI</div>
+        </div>
+      </div>
+    </div>
 
-<h3>Linux</h3>
-<pre>
-curl -so wazuh-agent.deb https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.x.deb
-dpkg -i wazuh-agent.deb
-systemctl enable wazuh-agent
-systemctl start wazuh-agent
-</pre>
+    <!-- 02 ARCHITECTURE -->
+    <div class="doc-section reveal" id="architecture">
+      <div class="section-num">// 02</div>
+      <h2 class="section-title">High-Level SOC Architecture</h2>
+      <p>The following diagram illustrates the full data flow from endpoint telemetry collection through to analyst investigation. Each component plays a critical role in ensuring low-latency alerting and high-fidelity detection.</p>
 
-<h2>7. SOC Workflow</h2>
-<pre>
-Event → Alert → Triage → Investigation → Response → Recovery → Closure
-</pre>
+      <div class="arch-diagram">
+        <div class="arch-flow">
+          <div class="arch-node">Endpoints<small>Win / Linux / Mac</small></div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-node green">Wazuh Agents<small>Telemetry Collection</small></div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-node yellow">Wazuh Manager<small>Rule Engine / Decoder</small></div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-node orange">OpenSearch<small>Log Indexing</small></div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-node magenta">Dashboard<small>Visualization</small></div>
+          <div class="arch-arrow">→</div>
+          <div class="arch-node purple">SOC Analysts<small>Triage & Response</small></div>
+        </div>
+      </div>
 
-<h2>8. Compliance Mapping</h2>
-<table>
-<tr><th>Framework</th><th>Coverage</th></tr>
-<tr><td>ISO 27001</td><td>Logging, Monitoring, FIM</td></tr>
-<tr><td>SOC 2</td><td>Continuous Monitoring</td></tr>
-<tr><td>PCI DSS</td><td>Log Retention, IDS</td></tr>
-</table>
+      <p>The <strong>Wazuh Manager</strong> is the brain of the operation — it receives agent data, decodes events, evaluates detection rules, and triggers alerts. The <strong>OpenSearch Indexer</strong> stores all logs for retention and search, while the <strong>Dashboard</strong> presents a unified view for SOC analysts.</p>
 
-<h2>9. Final Notes</h2>
-<p>This deployment provides a complete enterprise SOC using Wazuh SIEM with full detection, automation and compliance readiness.</p>
+      <div class="alert-box info">
+        <span class="alert-icon">Note</span>
+        <p>For environments with over 500 endpoints, consider deploying the Wazuh Indexer on dedicated hardware separate from the Manager to avoid resource contention during peak ingestion windows.</p>
+      </div>
+    </div>
 
+    <!-- 03 REQUIREMENTS -->
+    <div class="doc-section reveal" id="requirements">
+      <div class="section-num">// 03</div>
+      <h2 class="section-title">Infrastructure Requirements</h2>
+      <p>The following specifications represent <strong>minimum recommended sizing</strong> for a production SOC environment handling up to 500 endpoints. Scale horizontally for larger deployments.</p>
+
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Component</th>
+            <th>vCPU</th>
+            <th>RAM</th>
+            <th>Disk</th>
+            <th>OS</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Wazuh Manager</td>
+            <td>8</td>
+            <td>16 GB</td>
+            <td>200 GB</td>
+            <td>Ubuntu 22.04</td>
+            <td><span class="badge">Required</span></td>
+          </tr>
+          <tr>
+            <td>OpenSearch Indexer</td>
+            <td>16</td>
+            <td>32 GB</td>
+            <td>1–2 TB</td>
+            <td>Ubuntu 22.04</td>
+            <td><span class="badge">Required</span></td>
+          </tr>
+          <tr>
+            <td>Wazuh Dashboard</td>
+            <td>4</td>
+            <td>8 GB</td>
+            <td>100 GB</td>
+            <td>Ubuntu 22.04</td>
+            <td><span class="badge">Required</span></td>
+          </tr>
+          <tr>
+            <td>Threat Intel Feed (MISP)</td>
+            <td>4</td>
+            <td>8 GB</td>
+            <td>200 GB</td>
+            <td>Ubuntu 22.04</td>
+            <td><span class="badge yellow">Optional</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="section-num" style="margin-top:2rem;">Open Ports Required</div>
+      <div style="background:var(--bg-code); border:1px solid var(--border); margin-top:0.75rem;">
+        <div class="port-item">
+          <span class="port-num">22</span>
+          <span class="port-proto">TCP</span>
+          <span class="port-desc">SSH — Admin access</span>
+        </div>
+        <div class="port-item">
+          <span class="port-num">443</span>
+          <span class="port-proto">TCP</span>
+          <span class="port-desc">HTTPS — Wazuh Dashboard</span>
+        </div>
+        <div class="port-item">
+          <span class="port-num">1514</span>
+          <span class="port-proto">TCP/UDP</span>
+          <span class="port-desc">Wazuh Agent communication</span>
+        </div>
+        <div class="port-item">
+          <span class="port-num">1515</span>
+          <span class="port-proto">TCP</span>
+          <span class="port-desc">Wazuh Agent enrollment</span>
+        </div>
+        <div class="port-item">
+          <span class="port-num">9200</span>
+          <span class="port-proto">TCP</span>
+          <span class="port-desc">OpenSearch REST API</span>
+        </div>
+        <div class="port-item">
+          <span class="port-num">9300</span>
+          <span class="port-proto">TCP</span>
+          <span class="port-desc">OpenSearch node-to-node communication</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 04 HARDENING -->
+    <div class="doc-section reveal" id="hardening">
+      <div class="section-num">// 04</div>
+      <h2 class="section-title">OS Hardening</h2>
+      <p>Before deploying Wazuh, harden the underlying OS. Apply updates, configure the firewall, enable auditing, and disable unnecessary services. This reduces the attack surface of your SOC infrastructure itself.</p>
+
+      <div class="alert-box warning">
+        <span class="alert-icon">Warn</span>
+        <p>Run these commands on each server node (Manager, Indexer, Dashboard) before installation. Ensure UFW rules align with your network topology — overly restrictive rules will break inter-component communication.</p>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+          <span class="code-lang">bash — OS Hardening</span>
+          <button class="code-copy" onclick="copyCode(this)">Copy</button>
+        </div>
+        <pre><code><span class="code-comment"># Update and upgrade packages</span>
+<span class="code-cmd">apt</span> update <span class="code-flag">&amp;&amp;</span> <span class="code-cmd">apt</span> upgrade <span class="code-flag">-y</span>
+
+<span class="code-comment"># Install security essentials</span>
+<span class="code-cmd">apt</span> install <span class="code-flag">-y</span> fail2ban ufw auditd
+
+<span class="code-comment"># Configure firewall — allow required ports only</span>
+<span class="code-cmd">ufw</span> allow <span class="code-val">22,443,1514,1515,9200</span>
+<span class="code-cmd">ufw</span> enable
+
+<span class="code-comment"># Enable and start auditd for system call auditing</span>
+<span class="code-cmd">systemctl</span> enable <span class="code-flag">--now</span> auditd
+
+<span class="code-comment"># Disable root SSH login</span>
+<span class="code-cmd">sed</span> <span class="code-flag">-i</span> <span class="code-val">'s/PermitRootLogin yes/PermitRootLogin no/'</span> <span class="code-path">/etc/ssh/sshd_config</span>
+<span class="code-cmd">systemctl</span> restart sshd</code></pre>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">Kernel Hardening (sysctl)</div>
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+            <span class="code-lang">bash — sysctl tuning</span>
+            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="code-comment"># Append hardening params to sysctl.conf</span>
+<span class="code-cmd">cat</span> <span class="code-flag">&gt;&gt;</span> <span class="code-path">/etc/sysctl.conf</span> <span class="code-val">&lt;&lt;EOF
+net.ipv4.ip_forward = 0
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.tcp_syncookies = 1
+kernel.randomize_va_space = 2
+EOF</span>
+<span class="code-cmd">sysctl</span> <span class="code-flag">-p</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- 05 INSTALLATION -->
+    <div class="doc-section reveal" id="installation">
+      <div class="section-num">// 05</div>
+      <h2 class="section-title">All-in-One Installation</h2>
+      <p>Wazuh provides an automated installation script that deploys the Manager, Indexer, and Dashboard on a single node. This is ideal for lab environments, small deployments, or initial PoC setups.</p>
+
+      <div class="alert-box success">
+        <span class="alert-icon">Tip</span>
+        <p>The all-in-one installer handles certificate generation, service configuration, and inter-component connectivity automatically. For distributed deployments, use the <code>-d</code> flag with individual component installers.</p>
+      </div>
+
+      <div class="code-block">
+        <div class="code-header">
+          <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+          <span class="code-lang">bash — Download &amp; Install</span>
+          <button class="code-copy" onclick="copyCode(this)">Copy</button>
+        </div>
+        <pre><code><span class="code-comment"># Download the official Wazuh install script</span>
+<span class="code-cmd">curl</span> <span class="code-flag">-sO</span> https://packages.wazuh.com/4.7/wazuh-install.sh
+
+<span class="code-comment"># Run all-in-one deployment (-a flag)</span>
+<span class="code-cmd">bash</span> wazuh-install.sh <span class="code-flag">-a</span>
+
+<span class="code-comment"># Verify all services are running post-install</span>
+<span class="code-cmd">systemctl</span> status wazuh-manager
+<span class="code-cmd">systemctl</span> status wazuh-indexer
+<span class="code-cmd">systemctl</span> status wazuh-dashboard</code></pre>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">Post-Install Validation</div>
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+            <span class="code-lang">bash — Health Check</span>
+            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="code-comment"># Check cluster health via OpenSearch API</span>
+<span class="code-cmd">curl</span> <span class="code-flag">-k</span> <span class="code-flag">-u</span> admin:&lt;password&gt; https://localhost:9200/_cluster/health?pretty
+
+<span class="code-comment"># Confirm Wazuh Manager is receiving events</span>
+<span class="code-cmd">tail</span> <span class="code-flag">-f</span> <span class="code-path">/var/ossec/logs/alerts/alerts.log</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- 06 AGENTS -->
+    <div class="doc-section reveal" id="agents">
+      <div class="section-num">// 06</div>
+      <h2 class="section-title">Agent Deployment</h2>
+      <p>Wazuh agents are lightweight daemons deployed on endpoints that collect system logs, file integrity events, network traffic summaries, and vulnerability data — forwarding everything to the Manager for analysis.</p>
+
+      <div class="sub-section">
+        <div class="sub-title">Windows Agent — MSI Deployment</div>
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+            <span class="code-lang">cmd — Windows</span>
+            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="code-comment">:: Silent MSI install pointing to Wazuh Manager IP</span>
+<span class="code-cmd">msiexec</span> <span class="code-flag">/i</span> wazuh-agent.msi <span class="code-flag">/qn</span> <span class="code-val">WAZUH_MANAGER='10.0.0.10'</span>
+
+<span class="code-comment">:: Start the agent service</span>
+<span class="code-cmd">NET</span> START WazuhSvc</code></pre>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">Linux Agent — DEB / RPM</div>
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+            <span class="code-lang">bash — Ubuntu / Debian</span>
+            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="code-comment"># Download Wazuh agent package</span>
+<span class="code-cmd">curl</span> <span class="code-flag">-so</span> wazuh-agent.deb \
+  https://packages.wazuh.com/4.x/apt/pool/main/w/wazuh-agent/wazuh-agent_4.x.deb
+
+<span class="code-comment"># Install the package</span>
+<span class="code-cmd">WAZUH_MANAGER=</span><span class="code-val">'10.0.0.10'</span> <span class="code-cmd">dpkg</span> <span class="code-flag">-i</span> wazuh-agent.deb
+
+<span class="code-comment"># Enable and start the agent</span>
+<span class="code-cmd">systemctl</span> daemon-reload
+<span class="code-cmd">systemctl</span> enable wazuh-agent
+<span class="code-cmd">systemctl</span> start wazuh-agent</code></pre>
+        </div>
+      </div>
+
+      <div class="sub-section">
+        <div class="sub-title">Agent Group Management</div>
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+            <span class="code-lang">bash — Manager CLI</span>
+            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="code-comment"># List all connected agents</span>
+<span class="code-path">/var/ossec/bin/</span><span class="code-cmd">agent_control</span> <span class="code-flag">-lc</span>
+
+<span class="code-comment"># Create agent group for Windows endpoints</span>
+<span class="code-cmd">curl</span> <span class="code-flag">-k</span> <span class="code-flag">-u</span> wazuh-wui:&lt;pwd&gt; <span class="code-flag">-X</span> POST \
+  "https://localhost:55000/groups" \
+  <span class="code-flag">-H</span> <span class="code-val">"Content-Type: application/json"</span> \
+  <span class="code-flag">-d</span> <span class="code-val">'{"group_id":"windows-endpoints"}'</span></code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- 07 WORKFLOW -->
+    <div class="doc-section reveal" id="workflow">
+      <div class="section-num">// 07</div>
+      <h2 class="section-title">SOC Analyst Workflow</h2>
+      <p>A standardized workflow ensures consistent and thorough handling of every security event. The following lifecycle maps directly to NIST SP 800-61 incident handling phases, adapted for daily SOC operations.</p>
+
+      <div class="workflow">
+        <div class="workflow-step">
+          <div class="step-num">01</div>
+          <div class="step-label">Event<br>Ingestion</div>
+        </div>
+        <div class="workflow-step">
+          <div class="step-num">02</div>
+          <div class="step-label">Alert<br>Generation</div>
+        </div>
+        <div class="workflow-step">
+          <div class="step-num">03</div>
+          <div class="step-label">Triage &amp;<br>Priority</div>
+        </div>
+        <div class="workflow-step">
+          <div class="step-num">04</div>
+          <div class="step-label">Deep<br>Investigation</div>
+        </div>
+        <div class="workflow-step">
+          <div class="step-num">05</div>
+          <div class="step-label">Contain &amp;<br>Respond</div>
+        </div>
+        <div class="workflow-step">
+          <div class="step-num">06</div>
+          <div class="step-label">Recovery &amp;<br>Eradication</div>
+        </div>
+        <div class="workflow-step">
+          <div class="step-num">07</div>
+          <div class="step-label">Closure &amp;<br>Lessons</div>
+        </div>
+      </div>
+
+      <p>During the <strong>Triage</strong> phase, analysts use the Wazuh Dashboard to correlate related alerts, review raw logs, and score the severity of potential incidents. The built-in <strong>MITRE ATT&amp;CK</strong> module maps detected behaviors to known adversary techniques — significantly accelerating the investigation phase.</p>
+
+      <div class="sub-section">
+        <div class="sub-title">Custom Detection Rules (XML)</div>
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+            <span class="code-lang">xml — Wazuh Rule</span>
+            <button class="code-copy" onclick="copyCode(this)">Copy</button>
+          </div>
+          <pre><code><span class="code-comment">&lt;!-- Detect brute force: 5 failed logins in 60s --&gt;</span>
+&lt;<span class="code-cmd">rule</span> <span class="code-flag">id</span>=<span class="code-val">"100100"</span> <span class="code-flag">level</span>=<span class="code-val">"10"</span> <span class="code-flag">frequency</span>=<span class="code-val">"5"</span> <span class="code-flag">timeframe</span>=<span class="code-val">"60"</span>&gt;
+  &lt;<span class="code-cmd">if_matched_sid</span>&gt;5503&lt;/<span class="code-cmd">if_matched_sid</span>&gt;
+  &lt;<span class="code-cmd">same_source_ip</span>/&gt;
+  &lt;<span class="code-cmd">description</span>&gt;SSH Brute Force Detected&lt;/<span class="code-cmd">description</span>&gt;
+  &lt;<span class="code-cmd">group</span>&gt;authentication_failure,brute_force&lt;/<span class="code-cmd">group</span>&gt;
+  &lt;<span class="code-cmd">mitre</span>&gt;
+    &lt;<span class="code-cmd">id</span>&gt;T1110&lt;/<span class="code-cmd">id</span>&gt; <span class="code-comment">&lt;!-- Brute Force --&gt;</span>
+  &lt;/<span class="code-cmd">mitre</span>&gt;
+&lt;/<span class="code-cmd">rule</span>&gt;</code></pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- 08 COMPLIANCE -->
+    <div class="doc-section reveal" id="compliance">
+      <div class="section-num">// 08</div>
+      <h2 class="section-title">Compliance Mapping</h2>
+      <p>Wazuh provides <strong>out-of-the-box compliance mapping</strong> across major security frameworks. The platform continuously monitors controls, generates compliance reports, and flags policy violations — dramatically reducing audit preparation time.</p>
+
+      <div class="compliance-grid">
+        <div class="compliance-card">
+          <div class="compliance-logo">ISO 27001</div>
+          <div class="compliance-name">Information Security Mgmt</div>
+          <ul class="compliance-items">
+            <li>Log Monitoring (A.12.4)</li>
+            <li>File Integrity Monitoring</li>
+            <li>Access Control Auditing</li>
+            <li>Incident Management</li>
+          </ul>
+        </div>
+        <div class="compliance-card">
+          <div class="compliance-logo">SOC 2</div>
+          <div class="compliance-name">Trust Services Criteria</div>
+          <ul class="compliance-items">
+            <li>Continuous Monitoring</li>
+            <li>Change Detection</li>
+            <li>Vulnerability Assessment</li>
+            <li>Availability Metrics</li>
+          </ul>
+        </div>
+        <div class="compliance-card">
+          <div class="compliance-logo">PCI DSS</div>
+          <div class="compliance-name">Payment Card Industry</div>
+          <ul class="compliance-items">
+            <li>Log Retention (Req. 10)</li>
+            <li>IDS / IPS (Req. 11.4)</li>
+            <li>File Integrity (Req. 11.5)</li>
+            <li>Vulnerability Scans</li>
+          </ul>
+        </div>
+        <div class="compliance-card">
+          <div class="compliance-logo">HIPAA</div>
+          <div class="compliance-name">Health Data Security</div>
+          <ul class="compliance-items">
+            <li>Access Activity Logging</li>
+            <li>Data Integrity Checks</li>
+            <li>Audit Controls</li>
+            <li>Transmission Security</li>
+          </ul>
+        </div>
+      </div>
+
+      <table class="data-table" style="margin-top:1.5rem;">
+        <thead>
+          <tr>
+            <th>Framework</th>
+            <th>Coverage</th>
+            <th>Key Controls</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>ISO 27001</td>
+            <td>Logging, Monitoring, FIM</td>
+            <td>A.12.4, A.10.1, A.16</td>
+          </tr>
+          <tr>
+            <td>SOC 2 Type II</td>
+            <td>Continuous Monitoring</td>
+            <td>CC7.2, CC7.3, CC6.1</td>
+          </tr>
+          <tr>
+            <td>PCI DSS v4.0</td>
+            <td>Log Retention, IDS</td>
+            <td>Req 10, 11.4, 11.5</td>
+          </tr>
+          <tr>
+            <td>NIST CSF</td>
+            <td>Detect, Respond, Recover</td>
+            <td>DE.CM-*, RS.AN-*</td>
+          </tr>
+          <tr>
+            <td>HIPAA</td>
+            <td>Audit Controls</td>
+            <td>§164.312(b)</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- 09 FINAL NOTES -->
+    <div class="doc-section reveal" id="conclusion">
+      <div class="section-num">// 09</div>
+      <h2 class="section-title">Final Notes</h2>
+      <p>This deployment provides a complete enterprise-grade SOC using <strong>Wazuh SIEM with full detection, automation, and compliance readiness</strong>. The combination of real-time alerting, MITRE ATT&amp;CK mapping, file integrity monitoring, and compliance dashboards makes Wazuh a powerful open-source alternative to expensive commercial SIEM platforms.</p>
+      <p>Key next steps after base deployment include tuning detection rules to reduce false positives, integrating a <strong>SOAR platform</strong> (such as TheHive or Shuffle) for automated response, and connecting external <em>threat intelligence feeds</em> via MISP integration to enrich alerts with contextual IOC data.</p>
+
+      <div class="alert-box success">
+        <span class="alert-icon">Done</span>
+        <p>Deployment complete. Access the Wazuh Dashboard at <strong>https://&lt;server-ip&gt;</strong> using the credentials generated during installation. Proceed to agent enrollment and rule tuning.</p>
+      </div>
+
+      <div class="info-cards" style="margin-top:2rem;">
+        <div class="info-card">
+          <div class="info-card-label">Next Step</div>
+          <div class="info-card-value" style="font-size:1rem;">SOAR Integration</div>
+          <div class="info-card-sub">TheHive / Shuffle</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">Next Step</div>
+          <div class="info-card-value" style="font-size:1rem;">Threat Intel</div>
+          <div class="info-card-sub">MISP Integration</div>
+        </div>
+        <div class="info-card">
+          <div class="info-card-label">Next Step</div>
+          <div class="info-card-value" style="font-size:1rem;">Rule Tuning</div>
+          <div class="info-card-sub">False Positive Reduction</div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- FOOTER -->
+<footer class="doc-footer">
+  <span>© 2026 <span>Sid Faza</span> · SOC Deployment Guide</span>
+  <a href="index.html" class="footer-back">Back to Portfolio</a>
+</footer>
+
+<script>
+  // Reading progress bar
+  const progressBar = document.getElementById('progressBar');
+  const progressPct = document.getElementById('progressPct');
+  window.addEventListener('scroll', () => {
+    const totalH = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = Math.round((window.scrollY / totalH) * 100);
+    progressBar.style.width = pct + '%';
+    progressPct.textContent = pct + '%';
+  });
+
+  // Active TOC link
+  const sections = document.querySelectorAll('.doc-section');
+  const tocLinks = document.querySelectorAll('.toc-link');
+  const obs = new IntersectionObserver(entries => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        tocLinks.forEach(l => l.classList.remove('active'));
+        const id = entry.target.id;
+        const active = document.querySelector(`.toc-link[href="#${id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-30% 0px -60% 0px' });
+  sections.forEach(s => obs.observe(s));
+
+  // Reveal on scroll
+  const reveals = document.querySelectorAll('.reveal');
+  const revealObs = new IntersectionObserver(entries => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('visible'); revealObs.unobserve(e.target); }
+    });
+  }, { threshold: 0.08 });
+  reveals.forEach(r => revealObs.observe(r));
+
+  // Copy code
+  function copyCode(btn) {
+    const pre = btn.closest('.code-block').querySelector('pre');
+    const text = pre.innerText;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = 'Copy', 2000);
+    });
+  }
+</script>
 </body>
 </html>
