@@ -911,7 +911,7 @@
 <!-- STATS -->
 <div class="stats-bar">
   <div class="stat-item reveal">
-    <span class="stat-num" data-target="100+">0</span>
+    <span class="stat-num" data-target="95" data-suffix="%">0</span>
     <span class="stat-label">Projects Completed</span>
   </div>
   <div class="stat-item reveal">
@@ -1395,27 +1395,40 @@
   reveals.forEach(el => observer.observe(el));
 
   // Counter animation
-  function animateCounter(el) {
-    const target = parseInt(el.dataset.target);
-    const dur = 1500;
-    const step = target / (dur / 16);
-    let current = 0;
-    const timer = setInterval(() => {
-      current += step;
-      if (current >= target) { current = target; clearInterval(timer); }
-      el.textContent = Math.floor(current) + (target >= 100 ? '+' : '');
-    }, 16);
-  }
-  const counters = document.querySelectorAll('.stat-num');
-  const counterObs = new IntersectionObserver(entries => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        animateCounter(entry.target);
-        counterObs.unobserve(entry.target);
-      }
-    });
-  }, { threshold: 0.5 });
-  counters.forEach(c => counterObs.observe(c));
+function animateCounter(el) {
+  const target = parseFloat(el.dataset.target);
+  const suffix = el.dataset.suffix || '';
+  const duration = 1600;
+  const steps = duration / 16;
+  const increment = target / steps;
+
+  let current = 0;
+
+  const timer = setInterval(() => {
+    current += increment;
+
+    if (current >= target) {
+      current = target;
+      clearInterval(timer);
+    }
+
+    el.textContent =
+      (target % 1 !== 0 ? current.toFixed(1) : Math.floor(current)) + suffix;
+  }, 16);
+}
+
+const counters = document.querySelectorAll('.stat-num');
+
+const counterObs = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      animateCounter(entry.target);
+      counterObs.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.6 });
+
+counters.forEach(el => counterObs.observe(el));
 
   // Project filter
   document.querySelectorAll('.filter-tab').forEach(tab => {
