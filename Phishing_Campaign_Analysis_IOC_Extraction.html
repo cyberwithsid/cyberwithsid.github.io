@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phishing Campaign Analysis & IOC Extraction | Sid Faza</title>
+<style>@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;600;800;900&family=Rajdhani:wght@300;400;600;700&display=swap');
+:root{--bg-primary:#030712;--bg-secondary:#070d1a;--bg-card:#0a1628;--bg-code:#060e1e;--cyan:#00f5ff;--magenta:#ff006e;--green:#39ff14;--yellow:#ffd700;--orange:#ff6b00;--purple:#bd00ff;--text-primary:#e0f0ff;--text-secondary:#7899bb;--border:rgba(0,245,255,.15);--glow-cyan:0 0 20px rgba(0,245,255,.5);--glow-magenta:0 0 20px rgba(255,0,110,.5)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--bg-primary);color:var(--text-primary);font-family:'Rajdhani',sans-serif;font-size:16px;line-height:1.7;overflow-x:hidden}
+body::after{content:'';position:fixed;top:0;left:0;width:100%;height:100%;background-image:linear-gradient(rgba(0,245,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,.025) 1px,transparent 1px);background-size:50px 50px;pointer-events:none;z-index:0}
+body::before{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.025) 2px,rgba(0,0,0,.025) 4px);pointer-events:none;z-index:9990}
+nav{position:fixed;top:0;width:100%;background:rgba(3,7,18,.92);backdrop-filter:blur(20px);border-bottom:1px solid var(--border);z-index:1000;padding:0 5%}
+.nav-inner{display:flex;align-items:center;justify-content:space-between;height:60px}
+.nav-logo{font-family:'Orbitron',sans-serif;font-weight:900;font-size:1rem;color:var(--cyan);text-decoration:none;letter-spacing:3px;text-shadow:var(--glow-cyan)}
+.nav-logo span{color:var(--magenta)}
+.nav-back{font-family:'Share Tech Mono',monospace;font-size:.72rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-secondary);text-decoration:none;display:flex;align-items:center;gap:.5rem;transition:color .3s}
+.nav-back:hover{color:var(--cyan)}
+.nav-back::before{content:'←'}
+.hero{position:relative;padding:120px 6% 70px;z-index:1;border-bottom:1px solid var(--border);background:linear-gradient(135deg,rgba(0,245,255,.03) 0%,transparent 50%);overflow:hidden}
+.hero-bg-hex{position:absolute;right:-80px;top:50%;transform:translateY(-50%);font-size:22rem;color:var(--cyan);opacity:.02;line-height:1;pointer-events:none;animation:spin-slow 40s linear infinite}
+@keyframes spin-slow{from{transform:translateY(-50%) rotate(0)}to{transform:translateY(-50%) rotate(360deg)}}
+.hero-breadcrumb{font-family:'Share Tech Mono',monospace;font-size:.68rem;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:1.5rem;display:flex;align-items:center;gap:.5rem}
+.hero-breadcrumb a{color:var(--cyan);text-decoration:none}
+.hero-tags{display:flex;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem}
+.hero-tag{font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:2px;text-transform:uppercase;padding:4px 12px;border:1px solid rgba(0,245,255,.3);color:var(--cyan);background:rgba(0,245,255,.06)}
+.hero-tag.magenta{border-color:rgba(255,0,110,.3);color:var(--magenta);background:rgba(255,0,110,.06)}
+.hero-tag.green{border-color:rgba(57,255,20,.3);color:var(--green);background:rgba(57,255,20,.06)}
+.hero-tag.yellow{border-color:rgba(255,215,0,.3);color:var(--yellow);background:rgba(255,215,0,.06)}
+.hero-tag.orange{border-color:rgba(255,107,0,.3);color:var(--orange);background:rgba(255,107,0,.06)}
+.hero-title{font-family:'Orbitron',sans-serif;font-weight:900;font-size:clamp(1.8rem,4vw,3rem);line-height:1.1;color:#fff;margin-bottom:.75rem}
+.hero-title span{color:var(--cyan);text-shadow:var(--glow-cyan)}
+.hero-subtitle{font-size:1.1rem;color:var(--text-secondary);max-width:680px;margin-bottom:2rem;line-height:1.8}
+.hero-meta{display:flex;gap:2rem;flex-wrap:wrap;font-family:'Share Tech Mono',monospace;font-size:.7rem;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase}
+.hero-meta-item{display:flex;align-items:center;gap:.5rem}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--green);box-shadow:0 0 8px var(--green);animation:blink 2s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.page-layout{display:grid;grid-template-columns:260px 1fr;gap:0;position:relative;z-index:1;max-width:1400px;margin:0 auto}
+.sidebar{position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto;border-right:1px solid var(--border);padding:2.5rem 1.5rem;background:rgba(7,13,26,.6);scrollbar-width:thin;scrollbar-color:var(--cyan) transparent}
+.sidebar::-webkit-scrollbar{width:3px}
+.sidebar::-webkit-scrollbar-thumb{background:var(--cyan)}
+.sidebar-title{font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:4px;text-transform:uppercase;color:var(--cyan);margin-bottom:1.25rem;padding-bottom:.75rem;border-bottom:1px solid var(--border)}
+.toc-list{list-style:none;display:flex;flex-direction:column;gap:.25rem}
+.toc-list a{display:flex;align-items:center;gap:.5rem;font-family:'Share Tech Mono',monospace;font-size:.7rem;letter-spacing:1px;color:var(--text-secondary);text-decoration:none;padding:6px 10px;border-left:2px solid transparent;transition:all .3s;line-height:1.4}
+.toc-list a:hover,.toc-list a.active{color:var(--cyan);border-left-color:var(--cyan);background:rgba(0,245,255,.05)}
+.toc-num{font-size:.58rem;color:var(--cyan);opacity:.6;min-width:20px}
+.sidebar-progress{margin-top:2rem;padding-top:1.5rem;border-top:1px solid var(--border)}
+.progress-label{font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:3px;color:var(--text-secondary);text-transform:uppercase;margin-bottom:.5rem;display:flex;justify-content:space-between}
+.progress-label span{color:var(--cyan)}
+.progress-bar-bg{height:3px;background:rgba(255,255,255,.06);border-radius:2px}
+.progress-bar-fill{height:100%;background:linear-gradient(90deg,var(--cyan),var(--magenta));border-radius:2px;width:0%;transition:width .3s;box-shadow:0 0 8px var(--cyan)}
+.main-content{padding:3rem 4rem;max-width:960px}
+.doc-section{margin-bottom:4.5rem;padding-bottom:4.5rem;border-bottom:1px solid rgba(0,245,255,.06)}
+.doc-section:last-child{border-bottom:none}
+.section-num{font-family:'Share Tech Mono',monospace;font-size:.68rem;letter-spacing:4px;color:var(--cyan);text-transform:uppercase;margin-bottom:.5rem}
+.section-title{font-family:'Orbitron',sans-serif;font-weight:800;font-size:clamp(1.2rem,2.5vw,1.7rem);color:#fff;margin-bottom:1.5rem;display:flex;align-items:center;gap:1rem;line-height:1.2}
+.section-title::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,rgba(0,245,255,.3),transparent)}
+p{color:var(--text-secondary);font-size:1rem;line-height:1.85;margin-bottom:1.25rem}
+p strong{color:var(--cyan);font-weight:600}
+p em{color:var(--yellow);font-style:normal}
+.info-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1rem;margin:1.5rem 0}
+.info-card{background:var(--bg-card);border:1px solid var(--border);padding:1.25rem;position:relative;clip-path:polygon(0 0,calc(100% - 12px) 0,100% 12px,100% 100%,12px 100%,0 calc(100% - 12px))}
+.info-card-label{font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:3px;text-transform:uppercase;color:var(--cyan);margin-bottom:.5rem}
+.info-card-value{font-family:'Orbitron',sans-serif;font-weight:700;font-size:1.3rem;color:#fff;margin-bottom:.2rem}
+.info-card-sub{font-family:'Share Tech Mono',monospace;font-size:.65rem;color:var(--text-secondary);letter-spacing:1px}
+.data-table{width:100%;border-collapse:collapse;margin:1.5rem 0;font-family:'Share Tech Mono',monospace;font-size:.8rem}
+.data-table thead tr{background:rgba(0,245,255,.08);border-bottom:1px solid rgba(0,245,255,.3)}
+.data-table th{padding:12px 16px;text-align:left;font-size:.65rem;letter-spacing:3px;text-transform:uppercase;color:var(--cyan);font-weight:400}
+.data-table td{padding:10px 16px;color:var(--text-secondary);border-bottom:1px solid rgba(0,245,255,.05);vertical-align:middle}
+.data-table tr:hover td{background:rgba(0,245,255,.03);color:var(--text-primary)}
+.data-table td:first-child{color:var(--text-primary);font-weight:600}
+.badge{display:inline-block;padding:2px 8px;font-size:.62rem;border:1px solid rgba(57,255,20,.3);color:var(--green);background:rgba(57,255,20,.06)}
+.badge.yellow{border-color:rgba(255,215,0,.3);color:var(--yellow);background:rgba(255,215,0,.06)}
+.badge.magenta{border-color:rgba(255,0,110,.3);color:var(--magenta);background:rgba(255,0,110,.06)}
+.badge.red{border-color:rgba(255,50,50,.3);color:#ff3232;background:rgba(255,50,50,.06)}
+.code-block{background:var(--bg-code);border:1px solid var(--border);border-left:3px solid var(--green);margin:1.5rem 0;position:relative;overflow:hidden}
+.code-header{display:flex;align-items:center;justify-content:space-between;padding:8px 16px;background:rgba(0,0,0,.3);border-bottom:1px solid var(--border)}
+.code-lang{font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:3px;text-transform:uppercase;color:var(--green)}
+.code-dots{display:flex;gap:5px}
+.code-dot{width:8px;height:8px;border-radius:50%}
+.code-dot:nth-child(1){background:var(--magenta)}
+.code-dot:nth-child(2){background:var(--yellow)}
+.code-dot:nth-child(3){background:var(--green)}
+.code-copy{font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:2px;text-transform:uppercase;color:var(--text-secondary);background:none;border:none;cursor:pointer;transition:color .3s}
+.code-copy:hover{color:var(--cyan)}
+pre{padding:1.5rem;overflow-x:auto;margin:0}
+code{font-family:'Share Tech Mono',monospace;font-size:.82rem;color:var(--green);line-height:1.7}
+.code-comment{color:rgba(120,153,187,.6)}
+.code-cmd{color:var(--cyan)}
+.code-flag{color:var(--yellow)}
+.code-val{color:var(--magenta)}
+.code-path{color:var(--orange)}
+.code-key{color:var(--purple)}
+.sub-section{margin-top:2rem;padding-top:1.5rem;border-top:1px solid rgba(0,245,255,.06)}
+.sub-title{font-family:'Orbitron',sans-serif;font-weight:700;font-size:1rem;color:#e0e0ff;margin-bottom:1rem;display:flex;align-items:center;gap:.75rem}
+.sub-title::before{content:'//';color:var(--cyan);font-size:.85rem;opacity:.7}
+.alert-box{padding:1rem 1.25rem;margin:1.5rem 0;border-left:3px solid;display:flex;gap:1rem;align-items:flex-start}
+.alert-box.info{border-color:var(--cyan);background:rgba(0,245,255,.05)}
+.alert-box.warning{border-color:var(--yellow);background:rgba(255,215,0,.05)}
+.alert-box.success{border-color:var(--green);background:rgba(57,255,20,.05)}
+.alert-box.danger{border-color:var(--magenta);background:rgba(255,0,110,.05)}
+.alert-icon{font-family:'Share Tech Mono',monospace;font-size:.65rem;letter-spacing:2px;text-transform:uppercase;padding:2px 8px;flex-shrink:0;margin-top:2px}
+.alert-box.info .alert-icon{color:var(--cyan);border:1px solid rgba(0,245,255,.3)}
+.alert-box.warning .alert-icon{color:var(--yellow);border:1px solid rgba(255,215,0,.3)}
+.alert-box.success .alert-icon{color:var(--green);border:1px solid rgba(57,255,20,.3)}
+.alert-box.danger .alert-icon{color:var(--magenta);border:1px solid rgba(255,0,110,.3)}
+.alert-box p{margin:0;font-size:.9rem}
+.alert-box.info p{color:rgba(0,245,255,.8)}
+.alert-box.warning p{color:rgba(255,215,0,.8)}
+.alert-box.success p{color:rgba(57,255,20,.8)}
+.alert-box.danger p{color:rgba(255,0,110,.8)}
+.workflow{display:flex;align-items:stretch;gap:0;margin:1.5rem 0;flex-wrap:wrap}
+.workflow-step{flex:1;min-width:90px;background:var(--bg-card);border:1px solid var(--border);border-right:none;padding:1rem .75rem;text-align:center;position:relative;transition:all .3s}
+.workflow-step:last-child{border-right:1px solid var(--border)}
+.workflow-step::after{content:'›';position:absolute;right:-12px;top:50%;transform:translateY(-50%);color:var(--cyan);font-size:1.4rem;z-index:2;background:var(--bg-code)}
+.workflow-step:last-child::after{display:none}
+.workflow-step:hover{background:rgba(0,245,255,.06);border-color:rgba(0,245,255,.3)}
+.step-num{font-family:'Orbitron',sans-serif;font-size:.65rem;font-weight:700;color:var(--cyan);opacity:.6;margin-bottom:.25rem}
+.step-label{font-family:'Share Tech Mono',monospace;font-size:.62rem;letter-spacing:1px;text-transform:uppercase;color:var(--text-primary);line-height:1.4}
+.checklist{list-style:none;display:flex;flex-direction:column;gap:.5rem;margin:1.25rem 0}
+.checklist li{font-family:'Share Tech Mono',monospace;font-size:.8rem;letter-spacing:1px;color:var(--text-secondary);display:flex;align-items:flex-start;gap:.75rem;padding:.5rem 0;border-bottom:1px solid rgba(0,245,255,.04)}
+.checklist li::before{content:'✓';color:var(--green);font-size:.8rem;flex-shrink:0;margin-top:1px}
+.checklist li.warn::before{content:'⚠';color:var(--yellow)}
+.checklist li.cross::before{content:'✗';color:var(--magenta)}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin:1.5rem 0}
+.feature-card{background:var(--bg-card);border:1px solid var(--border);padding:1.25rem;transition:all .3s}
+.feature-card:hover{border-color:rgba(0,245,255,.3);transform:translateY(-2px)}
+.feature-card-title{font-family:'Orbitron',sans-serif;font-weight:700;font-size:.85rem;color:var(--cyan);margin-bottom:.5rem}
+.feature-card p{margin:0;font-size:.85rem}
+.reveal{opacity:0;transform:translateY(20px);transition:opacity .5s ease,transform .5s ease}
+.reveal.visible{opacity:1;transform:translateY(0)}
+::-webkit-scrollbar{width:4px;height:4px}
+::-webkit-scrollbar-track{background:var(--bg-primary)}
+::-webkit-scrollbar-thumb{background:var(--cyan);border-radius:2px}
+.doc-footer{position:relative;z-index:1;background:var(--bg-secondary);border-top:1px solid var(--border);padding:2rem 6%;display:flex;align-items:center;justify-content:space-between;font-family:'Share Tech Mono',monospace;font-size:.68rem;letter-spacing:2px;color:var(--text-secondary);text-transform:uppercase}
+.doc-footer span{color:var(--cyan)}
+.footer-back{color:var(--cyan);text-decoration:none;display:flex;align-items:center;gap:.5rem;transition:gap .3s}
+.footer-back:hover{gap:.9rem}
+@media(max-width:900px){.page-layout{grid-template-columns:1fr}.sidebar{display:none}.main-content{padding:2rem 5%}.workflow{flex-direction:column}.workflow-step{border-right:1px solid var(--border);border-bottom:none}.grid-2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<nav><div class="nav-inner">
+  <a href="index.html" class="nav-logo">SID<span>_</span>FAZA</a>
+  <a href="index.html#projects" class="nav-back">Back to Projects</a>
+</div></nav>
+
+<div class="hero">
+  <div class="hero-bg-hex">⬡</div>
+  <div class="hero-breadcrumb">
+    <a href="index.html">Portfolio</a><span>›</span>
+    <span>Threat Intelligence</span><span>›</span>
+    <span>Phishing Campaign Analysis & IOC Extraction</span>
+  </div>
+  <div class="hero-tags"><span class="hero-tag green">Threat Intel</span><span class="hero-tag ">IOC</span><span class="hero-tag magenta">YARA</span><span class="hero-tag yellow">Email Security</span></div>
+  <h1 class="hero-title">Phishing Campaign Analysis & IOC Extraction</h1>
+  <p class="hero-subtitle">Analyzed 200+ phishing campaigns, built an automated IOC extraction pipeline, and deployed 89 YARA/Sigma/Suricata detection rules — improving email phishing detection rate from 61% to 94%.</p>
+  <div class="hero-meta">
+    <div class="hero-meta-item"><div class="dot"></div><span>Status: Completed</span></div>
+    <div class="hero-meta-item"><span>Campaigns: 200+</span></div><div class="hero-meta-item"><span>IOCs: 4,800+</span></div><div class="hero-meta-item"><span>Detection Rules: 89</span></div>
+    <div class="hero-meta-item"><span>Author: Sid Faza</span></div>
+  </div>
+</div>
+
+<div class="page-layout">
+<aside class="sidebar">
+  <div class="sidebar-title">// Table of Contents</div>
+  <ul class="toc-list"><li><a href="#overview" class="toc-link"><span class="toc-num">01</span>Overview</a></li>
+<li><a href="#collection" class="toc-link"><span class="toc-num">02</span>Sample Collection</a></li>
+<li><a href="#analysis" class="toc-link"><span class="toc-num">03</span>Header Analysis</a></li>
+<li><a href="#ioc" class="toc-link"><span class="toc-num">04</span>IOC Extraction</a></li>
+<li><a href="#yara" class="toc-link"><span class="toc-num">05</span>YARA Rules</a></li>
+<li><a href="#results" class="toc-link"><span class="toc-num">06</span>Results</a></li>
+</ul>
+  <div class="sidebar-progress">
+    <div class="progress-label">Reading Progress <span id="progressPct">0%</span></div>
+    <div class="progress-bar-bg"><div class="progress-bar-fill" id="progressBar"></div></div>
+  </div>
+</aside>
+<main class="main-content">
+<div class="doc-section reveal" id="overview">
+<div class="section-num">// 01</div>
+<h2 class="section-title">Project Overview</h2>
+<div class="info-cards"><div class="info-card"><div class="info-card-label">Campaigns</div><div class="info-card-value">200+</div><div class="info-card-sub">Analyzed</div></div><div class="info-card"><div class="info-card-label">IOCs</div><div class="info-card-value">4,800+</div><div class="info-card-sub">Extracted</div></div><div class="info-card"><div class="info-card-label">Rules</div><div class="info-card-value">89</div><div class="info-card-sub">Detection Sigs</div></div><div class="info-card"><div class="info-card-label">Formats</div><div class="info-card-value">YARA + Sigma</div><div class="info-card-sub">+ Network Sigs</div></div></div><p>Analyzed over <strong>200 phishing campaigns</strong> targeting financial services, healthcare, and government sectors. For each campaign, malicious samples were collected, headers analyzed, payload extracted, and <strong>IOCs (Indicators of Compromise)</strong> documented — including domains, IPs, URLs, file hashes, and email artifacts.</p><p>The extracted IOCs were used to build <strong>89 detection signatures</strong> in YARA (for endpoint/email scanning) and Sigma (for SIEM deployment), significantly improving the organization's email security posture and phishing detection rate.</p>
+</div><div class="doc-section reveal" id="collection">
+<div class="section-num">// 02</div>
+<h2 class="section-title">Sample Collection</h2>
+<p>Phishing samples were sourced from user-reported emails, email gateway quarantine, abuse mailbox submissions, and public threat feeds including PhishTank, OpenPhish, and URLhaus.</p><div class="code-block">
+<div class="code-header">
+  <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+  <span class="code-lang">python — Abuse Mailbox Processor</span>
+  <button class="code-copy" onclick="copyCode(this)">Copy</button>
+</div>
+<pre><code><span class="code-comment"># Auto-extract attachments from abuse mailbox</span>
+<span class="code-key">import</span> imaplib, email, hashlib, os
+
+mail = imaplib.IMAP4_SSL(<span class="code-val">"mail.company.com"</span>)
+mail.login(<span class="code-val">"abuse@company.com"</span>, <span class="code-val">PASSWORD</span>)
+mail.select(<span class="code-val">"INBOX"</span>)
+
+typ, msgs = mail.search(<span class="code-key">None</span>, <span class="code-val">"UNSEEN"</span>)
+<span class="code-key">for</span> num <span class="code-key">in</span> msgs[0].split():
+    _, data = mail.fetch(num, <span class="code-val">"(RFC822)"</span>)
+    msg = email.message_from_bytes(data[0][1])
+    <span class="code-key">for</span> part <span class="code-key">in</span> msg.walk():
+        <span class="code-key">if</span> part.get_content_disposition() == <span class="code-val">"attachment"</span>:
+            payload = part.get_payload(decode=<span class="code-key">True</span>)
+            sha256 = hashlib.sha256(payload).hexdigest()
+            <span class="code-key">with</span> open(<span class="code-val">f"samples/{sha256}"</span>, <span class="code-val">"wb"</span>) <span class="code-key">as</span> f:
+                f.write(payload)</code></pre>
+</div>
+</div><div class="doc-section reveal" id="analysis">
+<div class="section-num">// 03</div>
+<h2 class="section-title">Header & Payload Analysis</h2>
+<div class="sub-section"><div class="sub-title">Key Header Fields for Attribution</div><table class="data-table"><thead><tr><th>Header Field</th><th>Purpose</th><th>Red Flags</th></tr></thead><tbody><tr><td>Return-Path</td><td>Bounce address</td><td>Mismatches From domain</td></tr><tr><td>X-Originating-IP</td><td>Sender IP</td><td>Known malicious ASN / Tor exit</td></tr><tr><td>Authentication-Results</td><td>SPF/DKIM/DMARC</td><td>fail / none = suspicious</td></tr><tr><td>Received</td><td>Hop chain</td><td>Unexpected relay countries</td></tr><tr><td>Content-Type</td><td>Body format</td><td>application/zip, .html often malicious</td></tr></tbody></table></div><div class="alert-box warning"><span class="alert-icon">Warn</span><p>DMARC failures alone are not sufficient to classify as phishing. Correlate with URL reputation, subject line patterns, and sender domain age before blocking.</p></div>
+</div><div class="doc-section reveal" id="ioc">
+<div class="section-num">// 04</div>
+<h2 class="section-title">IOC Extraction Pipeline</h2>
+<div class="code-block">
+<div class="code-header">
+  <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+  <span class="code-lang">python — URL & IOC Extraction</span>
+  <button class="code-copy" onclick="copyCode(this)">Copy</button>
+</div>
+<pre><code><span class="code-comment"># Extract URLs, IPs, and hashes from email body</span>
+<span class="code-key">import</span> re
+<span class="code-key">from</span> iocextract <span class="code-key">import</span> extract_urls, extract_ips, extract_sha256s
+
+<span class="code-key">def</span> <span class="code-cmd">extract_iocs</span>(email_body: str) -> dict:
+    urls    = list(extract_urls(email_body, refang=<span class="code-key">True</span>))
+    ips     = list(extract_ips(email_body, refang=<span class="code-key">True</span>))
+    hashes  = list(extract_sha256s(email_body))
+    domains = list({re.sub(r"https?://", <span class="code-val">""</span>, u).split(<span class="code-val">"/"</span>)[0] <span class="code-key">for</span> u <span class="code-key">in</span> urls})
+    <span class="code-key">return</span> {<span class="code-val">"urls"</span>: urls, <span class="code-val">"ips"</span>: ips, <span class="code-val">"hashes"</span>: hashes, <span class="code-val">"domains"</span>: domains}</code></pre>
+</div>
+</div><div class="doc-section reveal" id="yara">
+<div class="section-num">// 05</div>
+<h2 class="section-title">YARA Rule Development</h2>
+<div class="code-block">
+<div class="code-header">
+  <div class="code-dots"><div class="code-dot"></div><div class="code-dot"></div><div class="code-dot"></div></div>
+  <span class="code-lang">yara — Phishing Rule</span>
+  <button class="code-copy" onclick="copyCode(this)">Copy</button>
+</div>
+<pre><code><span class="code-comment">/* Detect HTML credential harvester with common lure patterns */</span>
+<span class="code-key">rule</span> Phishing_HTML_CredentialHarvester
+{
+    <span class="code-key">meta:</span>
+        author   = <span class="code-val">"Sid Faza"</span>
+        tlp      = <span class="code-val">"WHITE"</span>
+        mitre    = <span class="code-val">"T1566.001"</span>
+
+    <span class="code-key">strings:</span>
+        $form1   = <span class="code-val">"password"</span> <span class="code-key">nocase</span>
+        $form2   = <span class="code-val">"signin"</span>   <span class="code-key">nocase</span>
+        $exfil1  = <span class="code-val">"XMLHttpRequest"</span>
+        $lure1   = <span class="code-val">"Your account has been suspended"</span> <span class="code-key">nocase</span>
+        $lure2   = <span class="code-val">"Verify your identity"</span> <span class="code-key">nocase</span>
+
+    <span class="code-key">condition:</span>
+        2 <span class="code-key">of</span> ($form*) <span class="code-key">and</span> $exfil1 <span class="code-key">and</span> 1 <span class="code-key">of</span> ($lure*)
+}</code></pre>
+</div>
+</div><div class="doc-section reveal" id="results">
+<div class="section-num">// 06</div>
+<h2 class="section-title">Results & Impact</h2>
+<ul class="checklist"><li class="">4,800+ IOCs (domains, IPs, URLs, hashes) extracted and ingested into SIEM threat intelligence</li><li class="">89 detection rules deployed — YARA (email gateway), Sigma (SIEM), Suricata (network)</li><li class="">Phishing email detection rate improved from 61% to 94% over 4 months</li><li class="">Reduced user-reported phishing tickets by 58% through proactive blocking</li><li class="warn">Domain squatting remains a challenge — added lookalike domain monitoring via dnstwist</li></ul>
+</div>
+</main>
+</div>
+
+<footer class="doc-footer">
+  <span>© 2026 <span>Sid Faza</span> · Phishing Campaign Analysis & IOC Extraction</span>
+  <a href="index.html" class="footer-back">Back to Portfolio</a>
+</footer>
+
+<script>
+const progressBar=document.getElementById('progressBar'),progressPct=document.getElementById('progressPct');
+window.addEventListener('scroll',()=>{const t=document.documentElement.scrollHeight-window.innerHeight,p=Math.round(window.scrollY/t*100);progressBar.style.width=p+'%';progressPct.textContent=p+'%'});
+const sections=document.querySelectorAll('.doc-section'),tocLinks=document.querySelectorAll('.toc-link');
+new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){tocLinks.forEach(l=>l.classList.remove('active'));const a=document.querySelector('.toc-link[href="#'+e.target.id+'"]');if(a)a.classList.add('active')}});},{rootMargin:'-30% 0px -60% 0px'}).observe(...sections)||sections.forEach(s=>new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){tocLinks.forEach(l=>l.classList.remove('active'));const a=document.querySelector('.toc-link[href="#'+e.target.id+'"]');if(a)a.classList.add('active')}})},{rootMargin:'-30% 0px -60% 0px'}).observe(s));
+new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible')}})  ,{threshold:.08}).observe(...document.querySelectorAll('.reveal'))||document.querySelectorAll('.reveal').forEach(r=>new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting)e.target.classList.add('visible')})  ,{threshold:.08}).observe(r));
+function copyCode(btn){const t=btn.closest('.code-block').querySelector('pre').innerText;navigator.clipboard.writeText(t).then(()=>{btn.textContent='Copied!';setTimeout(()=>btn.textContent='Copy',2000)})}
+</script>
+</body></html>
